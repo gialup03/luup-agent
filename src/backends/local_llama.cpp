@@ -217,8 +217,12 @@ bool llama_backend_warmup(void* backend_data) {
         
         // Get vocab from model
         const llama_vocab* vocab = llama_model_get_vocab(backend->model);
+        if (!vocab) {
+            luup_set_error(LUUP_ERROR_INFERENCE_FAILED, "Failed to get vocabulary from model");
+            return false;
+        }
         
-        // Tokenize
+        // Tokenize - first call to get required size
         int n_tokens = llama_tokenize(
             vocab,
             warmup_prompt,
@@ -229,21 +233,38 @@ bool llama_backend_warmup(void* backend_data) {
             true   // parse_special
         );
         
+        if (n_tokens < 0) {
+            // Negative means we need -n_tokens space
+            tokens.resize(-n_tokens);
+            n_tokens = llama_tokenize(
+                vocab,
+                warmup_prompt,
+                strlen(warmup_prompt),
+                tokens.data(),
+                tokens.size(),
+                true,
+                true
+            );
+        } else if (n_tokens > 0) {
+            // Positive means tokens were written, resize and call again to be safe
+            tokens.resize(n_tokens);
+            n_tokens = llama_tokenize(
+                vocab,
+                warmup_prompt,
+                strlen(warmup_prompt),
+                tokens.data(),
+                tokens.size(),
+                true,
+                true
+            );
+        }
+        
         if (n_tokens <= 0) {
             luup_set_error(LUUP_ERROR_INFERENCE_FAILED, "Failed to tokenize warmup prompt");
             return false;
         }
         
         tokens.resize(n_tokens);
-        llama_tokenize(
-            vocab,
-            warmup_prompt,
-            strlen(warmup_prompt),
-            tokens.data(),
-            tokens.size(),
-            true,
-            true
-        );
         
         // Create batch
         llama_batch batch = llama_batch_get_one(tokens.data(), tokens.size());
@@ -284,8 +305,12 @@ char* llama_backend_generate(void* backend_data, const char* prompt,
         
         // Get vocab from model
         const llama_vocab* vocab = llama_model_get_vocab(backend->model);
+        if (!vocab) {
+            luup_set_error(LUUP_ERROR_INFERENCE_FAILED, "Failed to get vocabulary from model");
+            return nullptr;
+        }
         
-        // Tokenize prompt
+        // Tokenize prompt - first call to get required size
         std::vector<llama_token> tokens;
         int n_tokens = llama_tokenize(
             vocab,
@@ -297,21 +322,38 @@ char* llama_backend_generate(void* backend_data, const char* prompt,
             true
         );
         
+        if (n_tokens < 0) {
+            // Negative means we need -n_tokens space
+            tokens.resize(-n_tokens);
+            n_tokens = llama_tokenize(
+                vocab,
+                prompt,
+                strlen(prompt),
+                tokens.data(),
+                tokens.size(),
+                true,
+                true
+            );
+        } else if (n_tokens > 0) {
+            // Positive means tokens were written, resize and call again to be safe
+            tokens.resize(n_tokens);
+            n_tokens = llama_tokenize(
+                vocab,
+                prompt,
+                strlen(prompt),
+                tokens.data(),
+                tokens.size(),
+                true,
+                true
+            );
+        }
+        
         if (n_tokens <= 0) {
             luup_set_error(LUUP_ERROR_INFERENCE_FAILED, "Failed to tokenize prompt");
             return nullptr;
         }
         
         tokens.resize(n_tokens);
-        llama_tokenize(
-            vocab,
-            prompt,
-            strlen(prompt),
-            tokens.data(),
-            tokens.size(),
-            true,
-            true
-        );
         
         // Process prompt
         llama_batch batch = llama_batch_get_one(tokens.data(), tokens.size());
