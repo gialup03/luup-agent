@@ -172,11 +172,10 @@ static luup_error_t luup_agent_generate_stream_internal(
         // Add tool schema if tools are registered and enabled
         if (agent->enable_tool_calling && !agent->tools.empty()) {
             std::string tool_schema = generate_tool_schema(agent->tools);
-            // Insert tool schema right after system message (before conversation)
-            size_t insert_pos = prompt.find("<|im_end|>");
+            // Insert tool schema after system prompt (look for ChatML format)
+            size_t insert_pos = prompt.find("<|im_start|>user");
             if (insert_pos != std::string::npos) {
-                // Insert after the first <|im_end|> (end of system message)
-                prompt.insert(insert_pos + 11, tool_schema);  // 11 = length of "<|im_end|>\n"
+                prompt.insert(insert_pos, tool_schema);
             }
         }
         
@@ -297,11 +296,10 @@ static char* luup_agent_generate_internal(luup_agent* agent, const char* user_me
         // Add tool schema if tools are registered and enabled
         if (agent->enable_tool_calling && !agent->tools.empty()) {
             std::string tool_schema = generate_tool_schema(agent->tools);
-            // Insert tool schema right after system message (before conversation)
-            size_t insert_pos = prompt.find("<|im_end|>");
+            // Insert tool schema after system prompt (look for ChatML format)
+            size_t insert_pos = prompt.find("<|im_start|>user");
             if (insert_pos != std::string::npos) {
-                // Insert after the first <|im_end|> (end of system message)
-                prompt.insert(insert_pos + 11, tool_schema);  // 11 = length of "<|im_end|>\n"
+                prompt.insert(insert_pos, tool_schema);
             }
         }
         

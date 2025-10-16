@@ -112,7 +112,7 @@ int main(int argc, char** argv) {
         printf("\nOptions:\n");
         printf("  --no-tools       Disable tool calling\n");
         printf("  --temp <value>   Set temperature (default: 0.7)\n");
-        printf("  --ctx <size>     Set context size (default: 2048)\n");
+        printf("  --ctx <size>     Set context size (default: 4096)\n");
         printf("\nExamples:\n");
         printf("  %s models/qwen-0.5b.gguf\n", argv[0]);
         printf("  %s models/tiny-llama.gguf --temp 0.9\n", argv[0]);
@@ -123,7 +123,8 @@ int main(int argc, char** argv) {
     const char* model_path = argv[1];
     bool enable_tools = true;
     float temperature = 0.7f;
-    int context_size = 2048;
+    int context_size = 4096;  // Larger default for multi-turn tool calling
+    bool debug = false;
     
     // Parse options
     for (int i = 2; i < argc; i++) {
@@ -133,6 +134,8 @@ int main(int argc, char** argv) {
             temperature = atof(argv[++i]);
         } else if (strcmp(argv[i], "--ctx") == 0 && i + 1 < argc) {
             context_size = atoi(argv[++i]);
+        } else if (strcmp(argv[i], "--debug") == 0) {
+            debug = true;
         }
     }
     
