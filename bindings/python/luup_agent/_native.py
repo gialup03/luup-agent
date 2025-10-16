@@ -195,7 +195,7 @@ _lib.luup_agent_generate_stream.argtypes = [
 _lib.luup_agent_generate_stream.restype = ctypes.c_int
 
 _lib.luup_agent_generate.argtypes = [ctypes.c_void_p, ctypes.c_char_p]
-_lib.luup_agent_generate.restype = ctypes.c_char_p
+_lib.luup_agent_generate.restype = ctypes.c_void_p  # Return raw pointer for manual memory management
 
 _lib.luup_agent_add_message.argtypes = [
     ctypes.c_void_p,
@@ -227,7 +227,7 @@ _lib.luup_agent_destroy.restype = None
 # Memory Management Functions
 # ============================================================================
 
-_lib.luup_free_string.argtypes = [ctypes.c_char_p]
+_lib.luup_free_string.argtypes = [ctypes.c_void_p]
 _lib.luup_free_string.restype = None
 
 

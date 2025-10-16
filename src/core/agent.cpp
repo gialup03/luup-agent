@@ -183,12 +183,45 @@ luup_error_t luup_agent_generate_stream(
             return LUUP_ERROR_INVALID_PARAM;
         }
         
-        char* response_raw = llama_backend_generate(
-            backend_data,
-            prompt.c_str(),
-            agent->temperature,
-            agent->max_tokens
-        );
+        // For remote models, try to use streaming backend if available
+        if (!luup_model_is_local(agent->model)) {
+            bool success = openai_backend_generate_stream(
+                backend_data,
+                prompt.c_str(),
+                agent->temperature,
+                agent->max_tokens,
+                callback,
+                user_data
+            );
+            
+            if (success) {
+                // Add a placeholder message to history for the streamed response
+                if (agent->enable_history_management) {
+                    Message msg;
+                    msg.role = "assistant";
+                    msg.content = "[streamed response]";
+                    agent->history.push_back(msg);
+                }
+                luup_clear_error();
+                return LUUP_SUCCESS;
+            }
+            // Fall back to non-streaming if streaming fails
+        }
+        
+        // For local models or fallback, use non-streaming generation
+        char* response_raw = luup_model_is_local(agent->model) 
+            ? llama_backend_generate(
+                backend_data,
+                prompt.c_str(),
+                agent->temperature,
+                agent->max_tokens
+            )
+            : openai_backend_generate(
+                backend_data,
+                prompt.c_str(),
+                agent->temperature,
+                agent->max_tokens
+            );
         
         if (!response_raw) {
             return LUUP_ERROR_INFERENCE_FAILED;
@@ -293,12 +326,23 @@ char* luup_agent_generate(luup_agent* agent, const char* user_message) {
             return nullptr;
         }
         
-        char* response_raw = llama_backend_generate(
-            backend_data,
-            prompt.c_str(),
-            agent->temperature,
-            agent->max_tokens
-        );
+        // Call appropriate backend based on model type
+        char* response_raw;
+        if (luup_model_is_local(agent->model)) {
+            response_raw = llama_backend_generate(
+                backend_data,
+                prompt.c_str(),
+                agent->temperature,
+                agent->max_tokens
+            );
+        } else {
+            response_raw = openai_backend_generate(
+                backend_data,
+                prompt.c_str(),
+                agent->temperature,
+                agent->max_tokens
+            );
+        }
         
         if (!response_raw) {
             return nullptr;

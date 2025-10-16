@@ -47,6 +47,7 @@ extern bool openai_backend_generate_stream(void* backend_data, const char* promp
 
 // Model helper functions
 extern void* luup_model_get_backend_data(luup_model* model);
+extern bool luup_model_is_local(luup_model* model);
 
 // Context manager functions (from context_manager.cpp)
 extern std::string format_chat_history(const std::vector<Message>& history);
