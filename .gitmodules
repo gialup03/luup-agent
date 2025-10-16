@@ -1,0 +1,5 @@
+[submodule "external/llama.cpp"]
+	path = external/llama.cpp
+	url = https://github.com/ggerganov/llama.cpp.git
+	branch = master
+
