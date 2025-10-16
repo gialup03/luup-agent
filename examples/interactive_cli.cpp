@@ -29,8 +29,6 @@ void stream_callback(const char* token, void* user_data) {
 
 // Simple calculator tool for testing
 char* calculator_tool(const char* params_json, void* user_data) {
-    printf("\n  [Tool: calculator called with %s]\n", params_json);
-    
     // Extract expression from JSON string (simple string parsing)
     const char* expr_start = strstr(params_json, "expression");
     if (!expr_start) {
@@ -77,7 +75,6 @@ char* calculator_tool(const char* params_json, void* user_data) {
 
 // Simple time tool for testing
 char* time_tool(const char* params_json, void* user_data) {
-    printf("\n  [Tool: get_time called]\n");
     time_t now = time(nullptr);
     struct tm* timeinfo = localtime(&now);
     
