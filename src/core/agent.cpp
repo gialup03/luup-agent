@@ -116,11 +116,13 @@ luup_error_t luup_agent_register_tool(
     }
 }
 
-luup_error_t luup_agent_generate_stream(
+// Internal helper to avoid duplicate history addition
+static luup_error_t luup_agent_generate_stream_internal(
     luup_agent* agent,
     const char* user_message,
     luup_stream_callback_t callback,
-    void* user_data)
+    void* user_data,
+    bool add_to_history)
 {
     if (!agent || !user_message || !callback) {
         luup_set_error(LUUP_ERROR_INVALID_PARAM, "Invalid parameters for generation");
@@ -128,8 +130,8 @@ luup_error_t luup_agent_generate_stream(
     }
     
     try {
-        // Add user message to history if history management is enabled
-        if (agent->enable_history_management) {
+        // Add user message to history if requested
+        if (add_to_history && agent->enable_history_management) {
             Message msg;
             msg.role = "user";
             msg.content = user_message;
@@ -209,9 +211,9 @@ luup_error_t luup_agent_generate_stream(
                     agent->history.push_back(tool_msg);
                 }
                 
-                // Recursively generate final response
+                // Recursively generate final response (don't re-add to history)
                 // (In real implementation, you'd want a max recursion depth)
-                return luup_agent_generate_stream(agent, tool_results.c_str(), callback, user_data);
+                return luup_agent_generate_stream_internal(agent, tool_results.c_str(), callback, user_data, false);
             }
         }
         
@@ -234,15 +236,26 @@ luup_error_t luup_agent_generate_stream(
     }
 }
 
-char* luup_agent_generate(luup_agent* agent, const char* user_message) {
+// Public API wrapper
+luup_error_t luup_agent_generate_stream(
+    luup_agent* agent,
+    const char* user_message,
+    luup_stream_callback_t callback,
+    void* user_data)
+{
+    return luup_agent_generate_stream_internal(agent, user_message, callback, user_data, true);
+}
+
+// Internal helper to avoid duplicate history addition
+static char* luup_agent_generate_internal(luup_agent* agent, const char* user_message, bool add_to_history) {
     if (!agent || !user_message) {
         luup_set_error(LUUP_ERROR_INVALID_PARAM, "Invalid parameters for generation");
         return nullptr;
     }
     
     try {
-        // Add user message to history if history management is enabled
-        if (agent->enable_history_management) {
+        // Add user message to history if requested
+        if (add_to_history && agent->enable_history_management) {
             Message msg;
             msg.role = "user";
             msg.content = user_message;
@@ -321,9 +334,9 @@ char* luup_agent_generate(luup_agent* agent, const char* user_message) {
                     agent->history.push_back(tool_msg);
                 }
                 
-                // Recursively generate final response
+                // Recursively generate final response (don't re-add to history)
                 // (In real implementation, you'd want a max recursion depth)
-                return luup_agent_generate(agent, tool_results.c_str());
+                return luup_agent_generate_internal(agent, tool_results.c_str(), false);
             }
         }
         
@@ -348,6 +361,11 @@ char* luup_agent_generate(luup_agent* agent, const char* user_message) {
         luup_set_error(LUUP_ERROR_INFERENCE_FAILED, e.what());
         return nullptr;
     }
+}
+
+// Public API wrapper
+char* luup_agent_generate(luup_agent* agent, const char* user_message) {
+    return luup_agent_generate_internal(agent, user_message, true);
 }
 
 luup_error_t luup_agent_add_message(
