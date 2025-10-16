@@ -158,18 +158,19 @@ endif()
 include(GNUInstallDirs)
 
 install(TARGETS luup_agent
-    EXPORT luup-agent-targets
     LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
     ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
     RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
     PUBLIC_HEADER DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}
 )
 
-install(EXPORT luup-agent-targets
-    FILE luup-agent-targets.cmake
-    NAMESPACE luup::
-    DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/luup-agent
-)
+# Note: Export configuration disabled for now due to llama.cpp dependency
+# Will be re-enabled when proper package configuration is set up
+# install(EXPORT luup-agent-targets
+#     FILE luup-agent-targets.cmake
+#     NAMESPACE luup::
+#     DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/luup-agent
+# )
 
 # Create package config
 include(CMakePackageConfigHelpers)

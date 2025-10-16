@@ -4,7 +4,7 @@
  */
 
 #include "../../include/luup_agent.h"
-#include "internal.h"
+#include "../core/internal.h"
 
 // Todo list tool implementation will be added in Phase 3
 // This file provides a placeholder for built-in todo functionality

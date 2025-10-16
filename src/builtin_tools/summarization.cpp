@@ -4,7 +4,7 @@
  */
 
 #include "../../include/luup_agent.h"
-#include "internal.h"
+#include "../core/internal.h"
 
 // Summarization tool implementation will be added in Phase 3
 // This file provides a placeholder for auto-summarization

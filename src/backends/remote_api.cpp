@@ -4,7 +4,7 @@
  */
 
 #include "../../include/luup_agent.h"
-#include "internal.h"
+#include "../core/internal.h"
 
 // Remote API backend implementation will be added in Phase 2
 // This file provides a placeholder for HTTP API client
