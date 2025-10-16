@@ -30,7 +30,23 @@ Download pre-built binaries for your platform from the [releases page](https://g
 
 ## Your First Agent
 
-### 1. Get a Model
+### 1. Choose Your Backend
+
+luup-agent supports two backends:
+
+**Option A: Local Models (GGUF)**
+- No internet required
+- Full privacy and control
+- Requires model download (~600MB-5GB)
+
+**Option B: Remote APIs (OpenAI-compatible)**
+- No model download needed
+- Access to powerful cloud models
+- Requires API key and internet
+
+### 2. Get a Model
+
+#### For Local Backend
 
 Download a GGUF model. For testing, we recommend starting with a small model:
 
@@ -42,14 +58,23 @@ mkdir models
 wget https://huggingface.co/TheBloke/TinyLlama-1.1B-Chat-v1.0-GGUF/resolve/main/tinyllama-1.1b-chat-v1.0.Q4_K_M.gguf -O models/tinyllama.gguf
 ```
 
-### 2. Basic Chat Example (C)
+#### For Remote Backend
+
+Get an API key from your provider:
+- **OpenAI**: https://platform.openai.com/api-keys
+- **Ollama** (local): No key needed, runs at `http://localhost:11434/v1`
+- **OpenRouter**: https://openrouter.ai/keys
+
+### 3. Basic Chat Example (C)
+
+#### Using Local Model
 
 ```c
 #include <luup_agent.h>
 #include <stdio.h>
 
 int main() {
-    // Create model
+    // Create local model
     luup_model_config model_config = {
         .path = "models/tinyllama.gguf",
         .gpu_layers = -1,  // Use all GPU layers available
@@ -63,8 +88,38 @@ int main() {
         return 1;
     }
     
-    // Warmup (optional but recommended)
+    // Warmup (optional but recommended for local models)
     luup_model_warmup(model);
+```
+
+#### Using Remote API
+
+```c
+#include <luup_agent.h>
+#include <stdio.h>
+#include <stdlib.h>
+
+int main() {
+    // Get API key from environment
+    const char* api_key = getenv("OPENAI_API_KEY");
+    if (!api_key) {
+        fprintf(stderr, "Please set OPENAI_API_KEY environment variable\n");
+        return 1;
+    }
+    
+    // Create remote model
+    luup_model_config model_config = {
+        .path = "gpt-3.5-turbo",  // Model name
+        .api_key = api_key,
+        .api_base_url = "https://api.openai.com/v1",  // Optional
+        .context_size = 4096
+    };
+    
+    luup_model* model = luup_model_create_remote(&model_config);
+    if (!model) {
+        fprintf(stderr, "Error: %s\n", luup_get_last_error());
+        return 1;
+    }
     
     // Create agent
     luup_agent_config agent_config = {
@@ -91,13 +146,38 @@ int main() {
 }
 ```
 
-### 3. Compile and Run
+### 4. Compile and Run
+
+#### For Local Models
 
 ```bash
 # Compile
 gcc -o my_agent my_agent.c -lluup_agent
 
 # Run
+./my_agent
+```
+
+#### For Remote APIs
+
+```bash
+# Compile
+gcc -o my_agent my_agent.c -lluup_agent
+
+# Set API key and run
+export OPENAI_API_KEY="sk-..."
+./my_agent
+```
+
+**Using Ollama (Local Server):**
+
+```bash
+# Start Ollama server
+ollama serve
+
+# In another terminal
+export API_ENDPOINT="http://localhost:11434/v1"
+export API_KEY="ollama"  # Any value works for local Ollama
 ./my_agent
 ```
 
@@ -161,10 +241,44 @@ luup_agent* agent2 = luup_agent_create(&(luup_agent_config){
 // Both agents share the same model in memory
 ```
 
+## Remote API Examples
+
+### Python with Remote API
+
+```python
+from luup_agent import Model, Agent
+
+# Using OpenAI
+model = Model.from_remote(
+    endpoint="https://api.openai.com/v1",
+    api_key="sk-...",
+    context_size=4096
+)
+
+# Or using Ollama (local)
+model = Model.from_remote(
+    endpoint="http://localhost:11434/v1",
+    api_key="ollama",
+    context_size=2048
+)
+
+agent = Agent(model, system_prompt="You are a helpful assistant.")
+response = agent.generate("Hello!")
+print(response)
+```
+
+### Supported Remote Providers
+
+- **OpenAI**: `https://api.openai.com/v1` (gpt-4, gpt-3.5-turbo, etc.)
+- **Ollama**: `http://localhost:11434/v1` (local server, any model)
+- **OpenRouter**: `https://openrouter.ai/api/v1` (access to many models)
+- **Any OpenAI-compatible API**: Custom endpoints welcome!
+
 ## Next Steps
 
 - Read the [API Reference](api_reference.md) for complete documentation
 - Learn about [Tool Calling](tool_calling_guide.md) in depth
+- See [Remote API Guide](phases/PHASE5_COMPLETE.md) for advanced usage
 - Check out the [examples](../examples/) directory
 - Join our [community discussions](https://github.com/gialup03/luup-agent/discussions)
 

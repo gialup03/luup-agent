@@ -32,6 +32,19 @@ extern bool llama_backend_warmup(void* backend_data);
 extern char* llama_backend_generate(void* backend_data, const char* prompt,
                                     float temperature, int max_tokens);
 
+// OpenAI-compatible remote API backend functions
+extern void* openai_backend_init(const char* api_endpoint, const char* api_key,
+                                 const char* model_name, int context_size);
+extern void openai_backend_free(void* backend_data);
+extern bool openai_backend_get_info(void* backend_data, const char** model_name,
+                                    int* context_size);
+extern char* openai_backend_generate(void* backend_data, const char* prompt,
+                                     float temperature, int max_tokens);
+extern bool openai_backend_generate_stream(void* backend_data, const char* prompt,
+                                           float temperature, int max_tokens,
+                                           void (*callback)(const char* token, void* user_data),
+                                           void* user_data);
+
 // Model helper functions
 extern void* luup_model_get_backend_data(luup_model* model);
 

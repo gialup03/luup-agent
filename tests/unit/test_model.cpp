@@ -161,20 +161,18 @@ TEST_CASE("Model destruction", "[model]") {
     }
 }
 
-TEST_CASE("Remote model creation", "[model]") {
+TEST_CASE("Remote model creation", "[model][remote]") {
     SECTION("Valid remote config") {
         luup_model_config config = {
-            .path = "https://api.openai.com/v1",
+            .path = "gpt-3.5-turbo",  // Model name for remote APIs
             .gpu_layers = 0,
-            .context_size = 2048,
+            .context_size = 4096,
             .threads = 0,
-            .api_key = "test-key",
-            .api_base_url = nullptr
+            .api_key = "test-key-12345",
+            .api_base_url = "https://api.openai.com/v1"
         };
         
-        // Remote backend not yet implemented in Phase 1
         luup_model* model = luup_model_create_remote(&config);
-        // Should create model object even if backend isn't fully implemented
         REQUIRE(model != nullptr);
         
         if (model) {
@@ -182,6 +180,171 @@ TEST_CASE("Remote model creation", "[model]") {
             luup_error_t result = luup_model_get_info(model, &info);
             REQUIRE(result == LUUP_SUCCESS);
             REQUIRE(strcmp(info.backend, "openai") == 0);
+            REQUIRE(strcmp(info.device, "API") == 0);
+            REQUIRE(info.context_size == 4096);
+            REQUIRE(info.gpu_layers_loaded == 0);  // N/A for remote
+            REQUIRE(info.memory_usage == 0);        // N/A for remote
+            luup_model_destroy(model);
+        }
+    }
+    
+    SECTION("Missing API key") {
+        luup_model_config config = {
+            .path = "gpt-4",
+            .gpu_layers = 0,
+            .context_size = 2048,
+            .threads = 0,
+            .api_key = nullptr,  // Missing API key
+            .api_base_url = "https://api.openai.com/v1"
+        };
+        
+        luup_model* model = luup_model_create_remote(&config);
+        REQUIRE(model == nullptr);
+        const char* err = luup_get_last_error();
+        REQUIRE(err != nullptr);
+        REQUIRE(strstr(err, "API key") != nullptr);
+    }
+    
+    SECTION("Empty API key") {
+        luup_model_config config = {
+            .path = "gpt-4",
+            .gpu_layers = 0,
+            .context_size = 2048,
+            .threads = 0,
+            .api_key = "",  // Empty API key
+            .api_base_url = "https://api.openai.com/v1"
+        };
+        
+        luup_model* model = luup_model_create_remote(&config);
+        REQUIRE(model == nullptr);
+        const char* err = luup_get_last_error();
+        REQUIRE(err != nullptr);
+    }
+    
+    SECTION("Missing model name") {
+        luup_model_config config = {
+            .path = nullptr,  // Missing model name
+            .gpu_layers = 0,
+            .context_size = 2048,
+            .threads = 0,
+            .api_key = "test-key",
+            .api_base_url = "https://api.openai.com/v1"
+        };
+        
+        luup_model* model = luup_model_create_remote(&config);
+        REQUIRE(model == nullptr);
+    }
+    
+    SECTION("Empty model name") {
+        luup_model_config config = {
+            .path = "",  // Empty model name
+            .gpu_layers = 0,
+            .context_size = 2048,
+            .threads = 0,
+            .api_key = "test-key",
+            .api_base_url = "https://api.openai.com/v1"
+        };
+        
+        luup_model* model = luup_model_create_remote(&config);
+        REQUIRE(model == nullptr);
+    }
+    
+    SECTION("Default API endpoint") {
+        luup_model_config config = {
+            .path = "gpt-3.5-turbo",
+            .gpu_layers = 0,
+            .context_size = 2048,
+            .threads = 0,
+            .api_key = "test-key",
+            .api_base_url = nullptr  // Should default to OpenAI
+        };
+        
+        luup_model* model = luup_model_create_remote(&config);
+        REQUIRE(model != nullptr);
+        
+        if (model) {
+            luup_model_info info;
+            luup_error_t result = luup_model_get_info(model, &info);
+            REQUIRE(result == LUUP_SUCCESS);
+            luup_model_destroy(model);
+        }
+    }
+    
+    SECTION("Custom endpoint (Ollama)") {
+        luup_model_config config = {
+            .path = "llama2",
+            .gpu_layers = 0,
+            .context_size = 2048,
+            .threads = 0,
+            .api_key = "ollama",  // Ollama doesn't require real key
+            .api_base_url = "http://localhost:11434/v1"
+        };
+        
+        luup_model* model = luup_model_create_remote(&config);
+        REQUIRE(model != nullptr);
+        
+        if (model) {
+            luup_model_destroy(model);
+        }
+    }
+    
+    SECTION("Invalid URL format") {
+        luup_model_config config = {
+            .path = "gpt-4",
+            .gpu_layers = 0,
+            .context_size = 2048,
+            .threads = 0,
+            .api_key = "test-key",
+            .api_base_url = "not-a-valid-url"
+        };
+        
+        luup_model* model = luup_model_create_remote(&config);
+        REQUIRE(model == nullptr);
+        const char* err = luup_get_last_error();
+        REQUIRE(err != nullptr);
+    }
+    
+    SECTION("Context size defaults") {
+        luup_model_config config = {
+            .path = "gpt-4",
+            .gpu_layers = 0,
+            .context_size = 0,  // Should default to 8192 for remote
+            .threads = 0,
+            .api_key = "test-key",
+            .api_base_url = "https://api.openai.com/v1"
+        };
+        
+        luup_model* model = luup_model_create_remote(&config);
+        REQUIRE(model != nullptr);
+        
+        if (model) {
+            luup_model_info info;
+            luup_error_t result = luup_model_get_info(model, &info);
+            REQUIRE(result == LUUP_SUCCESS);
+            REQUIRE(info.context_size == 8192);
+            luup_model_destroy(model);
+        }
+    }
+}
+
+TEST_CASE("Remote model warmup", "[model][remote]") {
+    SECTION("Warmup remote model (should be no-op)") {
+        luup_model_config config = {
+            .path = "gpt-3.5-turbo",
+            .gpu_layers = 0,
+            .context_size = 2048,
+            .threads = 0,
+            .api_key = "test-key",
+            .api_base_url = "https://api.openai.com/v1"
+        };
+        
+        luup_model* model = luup_model_create_remote(&config);
+        REQUIRE(model != nullptr);
+        
+        if (model) {
+            // Warmup should succeed but do nothing for remote models
+            luup_error_t result = luup_model_warmup(model);
+            REQUIRE(result == LUUP_SUCCESS);
             luup_model_destroy(model);
         }
     }
