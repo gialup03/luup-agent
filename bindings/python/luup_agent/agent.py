@@ -64,6 +64,7 @@ class Agent:
         max_tokens: int = 512,
         enable_tool_calling: bool = True,
         enable_history: bool = True,
+        enable_builtin_tools: bool = True,
     ):
         """
         Create a new agent.
@@ -75,6 +76,7 @@ class Agent:
             max_tokens: Maximum tokens to generate per response (0 = no limit)
             enable_tool_calling: Enable automatic tool calling
             enable_history: Enable automatic conversation history management
+            enable_builtin_tools: Enable built-in tools (todo, notes, summarization) - opt-out design
             
         Raises:
             InvalidParameterError: If parameters are invalid
@@ -93,6 +95,7 @@ class Agent:
             max_tokens=max_tokens,
             enable_tool_calling=enable_tool_calling,
             enable_history_management=enable_history,
+            enable_builtin_tools=enable_builtin_tools,
         )
         
         # Create agent

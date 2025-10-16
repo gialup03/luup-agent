@@ -26,6 +26,7 @@ Complete documentation for luup-agent library.
 ### Phase Completion Reports
 - [Phase 1: Model Layer](phases/PHASE1_COMPLETE.md) - llama.cpp backend integration
 - [Phase 2: Agent Layer](phases/PHASE2_COMPLETE.md) - Tool calling and conversation management
+- [Phase 3: Built-in Tools](phases/PHASE3_COMPLETE.md) - Todo, notes, and auto-summarization
 - [Phase 4: Python Bindings](../bindings/python/PHASE4_COMPLETE.md) - Python package implementation
 
 ## Project Organization
@@ -87,13 +88,14 @@ luup-agent/
 ### For Project Management
 - ✅ [Phase 1 Complete](phases/PHASE1_COMPLETE.md) - Model Layer
 - ✅ [Phase 2 Complete](phases/PHASE2_COMPLETE.md) - Agent Layer
+- ✅ [Phase 3 Complete](phases/PHASE3_COMPLETE.md) - Built-in Tools
 - ✅ [Phase 4 Complete](../bindings/python/PHASE4_COMPLETE.md) - Python Bindings
 
 ## Version
 
-Current version: **0.1.0-dev**
+Current version: **0.1.0**
 
-Status: Active development, v0.1 release candidate
+Status: All planned v0.1 features complete and tested
 
 ## Support
 

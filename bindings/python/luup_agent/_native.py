@@ -100,6 +100,7 @@ class CAgentConfig(ctypes.Structure):
         ("max_tokens", ctypes.c_int),
         ("enable_tool_calling", ctypes.c_bool),
         ("enable_history_management", ctypes.c_bool),
+        ("enable_builtin_tools", ctypes.c_bool),
     ]
 
 

@@ -12,8 +12,12 @@ target_link_libraries(tool_calling PRIVATE luup_agent)
 add_executable(interactive_cli interactive_cli.cpp)
 target_link_libraries(interactive_cli PRIVATE luup_agent)
 
+# Built-in tools demo
+add_executable(builtin_tools_demo builtin_tools_demo.cpp)
+target_link_libraries(builtin_tools_demo PRIVATE luup_agent)
+
 # Install examples (optional)
-install(TARGETS basic_chat tool_calling interactive_cli
+install(TARGETS basic_chat tool_calling interactive_cli builtin_tools_demo
     RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}/examples
 )
 

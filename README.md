@@ -7,6 +7,7 @@ A cross-platform C library for LLM inference with multi-agent support and tool c
 - **Two-Layer Architecture**: Separate model inference from agent behavior
 - **Cross-Platform GPU Support**: Metal (macOS), CUDA, ROCm, Vulkan, CPU fallback
 - **Tool Calling**: JSON-schema based function calling like OpenAI
+- **Built-in Productivity Tools**: Todo list, notes, and auto-summarization (opt-out design)
 - **Model Sharing**: Multiple agents can efficiently share one loaded model
 - **Streaming Support**: Token-by-token generation for responsive UIs
 - **Multiple Backends**: Local models (llama.cpp/GGUF) and remote APIs (OpenAI-compatible)
@@ -46,13 +47,14 @@ luup_model_config model_config = {
 luup_model* model = luup_model_create_local(&model_config);
 luup_model_warmup(model);
 
-// Create agent
+// Create agent (built-in tools enabled by default)
 luup_agent_config agent_config = {
     .model = model,
     .system_prompt = "You are a helpful assistant.",
     .temperature = 0.7,
     .max_tokens = 512,
-    .enable_tool_calling = true
+    .enable_tool_calling = true,
+    .enable_builtin_tools = true  // Todo, notes, auto-summarization
 };
 
 luup_agent* agent = luup_agent_create(&agent_config);
@@ -262,7 +264,7 @@ Contributions welcome! Please see our [contributing guidelines](CONTRIBUTING.md)
 
 ## Roadmap
 
-### ✅ Completed (v0.1-dev)
+### ✅ Completed (v0.1)
 - [x] **Phase 0**: Repository setup and build system
 - [x] **Phase 1**: Model layer with llama.cpp backend
 - [x] **Phase 2**: Agent layer with tool calling
@@ -270,15 +272,17 @@ Contributions welcome! Please see our [contributing guidelines](CONTRIBUTING.md)
   - [x] Tool registration and execution
   - [x] Streaming generation API
   - [x] History serialization
+- [x] **Phase 3**: Built-in productivity tools ✨
+  - [x] Todo list (CRUD operations)
+  - [x] Notes with tags and search
+  - [x] Auto-summarization at 75% context
+  - [x] Opt-out design (enabled by default)
 - [x] **Phase 4**: Python bindings ✨
   - [x] Pythonic Model and Agent classes
   - [x] `@agent.tool()` decorator
   - [x] Sync and async streaming
   - [x] Full type hints
   - [x] 28 test cases + examples
-
-### 🚧 In Progress
-- [ ] **Phase 3**: Built-in tools (todo, notes, auto-summarization)
 
 ### 📋 Planned
 - [ ] Remote API support (OpenAI-compatible)
