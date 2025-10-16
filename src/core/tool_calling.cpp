@@ -102,10 +102,15 @@ std::vector<ToolCall> parse_tool_calls(const std::string& text) {
                     // Check if this is a tool call structure
                     if (j.contains("tool_calls") && j["tool_calls"].is_array()) {
                         for (const auto& call : j["tool_calls"]) {
-                            if (call.contains("name") && call.contains("parameters")) {
+                            if (call.contains("name")) {
                                 ToolCall tc;
                                 tc.tool_name = call["name"].get<std::string>();
-                                tc.parameters_json = call["parameters"].dump();
+                                // Parameters are optional - default to empty object
+                                if (call.contains("parameters")) {
+                                    tc.parameters_json = call["parameters"].dump();
+                                } else {
+                                    tc.parameters_json = "{}";
+                                }
                                 tool_calls.push_back(tc);
                             }
                         }
@@ -113,10 +118,15 @@ std::vector<ToolCall> parse_tool_calls(const std::string& text) {
                         break;
                     }
                     // Also support direct tool call format
-                    else if (j.contains("name") && j.contains("parameters")) {
+                    else if (j.contains("name")) {
                         ToolCall tc;
                         tc.tool_name = j["name"].get<std::string>();
-                        tc.parameters_json = j["parameters"].dump();
+                        // Parameters are optional - default to empty object
+                        if (j.contains("parameters")) {
+                            tc.parameters_json = j["parameters"].dump();
+                        } else {
+                            tc.parameters_json = "{}";
+                        }
                         tool_calls.push_back(tc);
                         // Found valid tool call, we're done
                         break;
