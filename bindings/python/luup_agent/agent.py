@@ -135,10 +135,13 @@ class Agent:
             msg = error_msg.decode('utf-8') if error_msg else "Generation failed"
             raise RuntimeError(msg)
         
-        # Decode response
-        response = result_ptr.decode('utf-8')
+        # Convert pointer to Python string safely
+        import ctypes
+        # Cast the void pointer to a c_char_p to read the string
+        c_str = ctypes.cast(result_ptr, ctypes.c_char_p)
+        response = c_str.value.decode('utf-8')
         
-        # Free C string
+        # Free C string using the original void pointer
         _native._lib.luup_free_string(result_ptr)
         
         return response

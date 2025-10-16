@@ -80,8 +80,21 @@ namespace {
             auto j = json::parse(json_str);
             if (j.contains("choices") && !j["choices"].empty()) {
                 auto& choice = j["choices"][0];
-                if (choice.contains("delta") && choice["delta"].contains("content")) {
-                    return choice["delta"]["content"].get<std::string>();
+                if (choice.contains("delta")) {
+                    auto& delta = choice["delta"];
+                    
+                    // Try content field first
+                    if (delta.contains("content")) {
+                        std::string content = delta["content"].get<std::string>();
+                        if (!content.empty()) {
+                            return content;
+                        }
+                    }
+                    
+                    // Try reasoning field (used by some models like qwen3)
+                    if (delta.contains("reasoning")) {
+                        return delta["reasoning"].get<std::string>();
+                    }
                 }
             }
         } catch (const json::exception&) {
@@ -270,18 +283,31 @@ char* openai_backend_generate(void* backend_data, const char* prompt,
         // Extract content
         if (response_json.contains("choices") && !response_json["choices"].empty()) {
             auto& choice = response_json["choices"][0];
-            if (choice.contains("message") && choice["message"].contains("content")) {
-                std::string content = choice["message"]["content"].get<std::string>();
+            if (choice.contains("message")) {
+                auto& message = choice["message"];
+                std::string content;
                 
-                // Allocate and return result
-                char* result = static_cast<char*>(malloc(content.size() + 1));
-                if (result) {
-                    memcpy(result, content.c_str(), content.size());
-                    result[content.size()] = '\0';
+                // Try to get content from "content" field first
+                if (message.contains("content")) {
+                    content = message["content"].get<std::string>();
                 }
                 
-                luup_clear_error();
-                return result;
+                // If content is empty, try "reasoning" field (used by some models like qwen3)
+                if (content.empty() && message.contains("reasoning")) {
+                    content = message["reasoning"].get<std::string>();
+                }
+                
+                if (!content.empty()) {
+                    // Allocate and return result
+                    char* result = static_cast<char*>(malloc(content.size() + 1));
+                    if (result) {
+                        memcpy(result, content.c_str(), content.size());
+                        result[content.size()] = '\0';
+                    }
+                    
+                    luup_clear_error();
+                    return result;
+                }
             }
         }
         

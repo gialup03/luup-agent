@@ -196,3 +196,7 @@ void* luup_model_get_backend_data(luup_model* model) {
     return model ? model->backend_data : nullptr;
 }
 
+bool luup_model_is_local(luup_model* model) {
+    return model ? model->is_local : false;
+}
+
