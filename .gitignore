@@ -18,6 +18,7 @@ _deps/
 .vscode/
 .vs/
 .idea/
+.cursor/
 *.swp
 *.swo
 *~
