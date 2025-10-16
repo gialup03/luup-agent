@@ -155,8 +155,8 @@ luup_error_t luup_agent_generate_stream(
         // Add tool schema if tools are registered and enabled
         if (agent->enable_tool_calling && !agent->tools.empty()) {
             std::string tool_schema = generate_tool_schema(agent->tools);
-            // Insert tool schema after system prompt
-            size_t insert_pos = prompt.find("User:");
+            // Insert tool schema after system prompt (look for ChatML format)
+            size_t insert_pos = prompt.find("<|im_start|>user");
             if (insert_pos != std::string::npos) {
                 prompt.insert(insert_pos, tool_schema);
             }
@@ -268,8 +268,8 @@ char* luup_agent_generate(luup_agent* agent, const char* user_message) {
         // Add tool schema if tools are registered and enabled
         if (agent->enable_tool_calling && !agent->tools.empty()) {
             std::string tool_schema = generate_tool_schema(agent->tools);
-            // Insert tool schema after system prompt
-            size_t insert_pos = prompt.find("User:");
+            // Insert tool schema after system prompt (look for ChatML format)
+            size_t insert_pos = prompt.find("<|im_start|>user");
             if (insert_pos != std::string::npos) {
                 prompt.insert(insert_pos, tool_schema);
             }

@@ -55,44 +55,78 @@ std::vector<ToolCall> parse_tool_calls(const std::string& text) {
     std::vector<ToolCall> tool_calls;
     
     try {
-        // Try to find JSON blocks in the output
-        // Look for patterns like ```json ... ``` or just raw JSON
-        std::regex json_block_regex(R"(```(?:json)?\s*(\{[\s\S]*?\})\s*```|\{[\s\S]*?\})");
-        std::smatch match;
-        std::string search_text = text;
-        
-        while (std::regex_search(search_text, match, json_block_regex)) {
-            std::string json_str = match[1].str();
-            if (json_str.empty()) {
-                json_str = match[0].str();
+        // Helper function to extract JSON with proper brace matching
+        auto extract_json = [](const std::string& str, size_t start_pos) -> std::string {
+            if (start_pos >= str.length() || str[start_pos] != '{') {
+                return "";
             }
             
-            try {
-                json j = json::parse(json_str);
+            int brace_count = 0;
+            size_t i = start_pos;
+            bool in_string = false;
+            bool escape_next = false;
+            
+            while (i < str.length()) {
+                char c = str[i];
                 
-                // Check if this is a tool call structure
-                if (j.contains("tool_calls") && j["tool_calls"].is_array()) {
-                    for (const auto& call : j["tool_calls"]) {
-                        if (call.contains("name") && call.contains("parameters")) {
-                            ToolCall tc;
-                            tc.tool_name = call["name"].get<std::string>();
-                            tc.parameters_json = call["parameters"].dump();
-                            tool_calls.push_back(tc);
+                if (escape_next) {
+                    escape_next = false;
+                } else if (c == '\\' && in_string) {
+                    escape_next = true;
+                } else if (c == '"') {
+                    in_string = !in_string;
+                } else if (!in_string) {
+                    if (c == '{') {
+                        brace_count++;
+                    } else if (c == '}') {
+                        brace_count--;
+                        if (brace_count == 0) {
+                            return str.substr(start_pos, i - start_pos + 1);
                         }
                     }
                 }
-                // Also support direct tool call format
-                else if (j.contains("name") && j.contains("parameters")) {
-                    ToolCall tc;
-                    tc.tool_name = j["name"].get<std::string>();
-                    tc.parameters_json = j["parameters"].dump();
-                    tool_calls.push_back(tc);
+                i++;
+            }
+            return "";
+        };
+        
+        // Look for JSON objects in the text
+        size_t pos = 0;
+        while ((pos = text.find('{', pos)) != std::string::npos) {
+            std::string json_str = extract_json(text, pos);
+            
+            if (!json_str.empty()) {
+                try {
+                    json j = json::parse(json_str);
+                    
+                    // Check if this is a tool call structure
+                    if (j.contains("tool_calls") && j["tool_calls"].is_array()) {
+                        for (const auto& call : j["tool_calls"]) {
+                            if (call.contains("name") && call.contains("parameters")) {
+                                ToolCall tc;
+                                tc.tool_name = call["name"].get<std::string>();
+                                tc.parameters_json = call["parameters"].dump();
+                                tool_calls.push_back(tc);
+                            }
+                        }
+                        // Found valid tool calls, we're done
+                        break;
+                    }
+                    // Also support direct tool call format
+                    else if (j.contains("name") && j.contains("parameters")) {
+                        ToolCall tc;
+                        tc.tool_name = j["name"].get<std::string>();
+                        tc.parameters_json = j["parameters"].dump();
+                        tool_calls.push_back(tc);
+                        // Found valid tool call, we're done
+                        break;
+                    }
+                } catch (const json::exception&) {
+                    // Not valid JSON, continue searching
                 }
-            } catch (const json::exception&) {
-                // Not valid JSON, continue searching
             }
             
-            search_text = match.suffix().str();
+            pos++;
         }
     } catch (const std::exception&) {
         // Error parsing, return empty list
