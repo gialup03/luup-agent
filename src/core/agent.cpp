@@ -141,12 +141,14 @@ luup_error_t luup_agent_generate_stream(
         if (agent->enable_history_management) {
             prompt = format_chat_history(agent->history);
         } else {
-            // No history - just use system prompt + user message
+            // No history - use ChatML format
             if (!agent->system_prompt.empty()) {
-                prompt = "System: " + agent->system_prompt + "\n\nUser: " + 
-                         std::string(user_message) + "\n\nAssistant: ";
+                prompt = "<|im_start|>system\n" + agent->system_prompt + "<|im_end|>\n" +
+                         "<|im_start|>user\n" + std::string(user_message) + "<|im_end|>\n" +
+                         "<|im_start|>assistant\n";
             } else {
-                prompt = "User: " + std::string(user_message) + "\n\nAssistant: ";
+                prompt = "<|im_start|>user\n" + std::string(user_message) + "<|im_end|>\n" +
+                         "<|im_start|>assistant\n";
             }
         }
         
@@ -252,12 +254,14 @@ char* luup_agent_generate(luup_agent* agent, const char* user_message) {
         if (agent->enable_history_management) {
             prompt = format_chat_history(agent->history);
         } else {
-            // No history - just use system prompt + user message
+            // No history - use ChatML format
             if (!agent->system_prompt.empty()) {
-                prompt = "System: " + agent->system_prompt + "\n\nUser: " + 
-                         std::string(user_message) + "\n\nAssistant: ";
+                prompt = "<|im_start|>system\n" + agent->system_prompt + "<|im_end|>\n" +
+                         "<|im_start|>user\n" + std::string(user_message) + "<|im_end|>\n" +
+                         "<|im_start|>assistant\n";
             } else {
-                prompt = "User: " + std::string(user_message) + "\n\nAssistant: ";
+                prompt = "<|im_start|>user\n" + std::string(user_message) + "<|im_end|>\n" +
+                         "<|im_start|>assistant\n";
             }
         }
         

@@ -16,22 +16,18 @@ struct Message {
 };
 
 // Format conversation history into a prompt string
-// Uses a simple chat template format
+// Uses ChatML format (compatible with Qwen, Mistral, and many modern models)
 std::string format_chat_history(const std::vector<Message>& history) {
     std::ostringstream oss;
     
     for (const auto& msg : history) {
-        if (msg.role == "system") {
-            oss << "System: " << msg.content << "\n\n";
-        } else if (msg.role == "user") {
-            oss << "User: " << msg.content << "\n\n";
-        } else if (msg.role == "assistant") {
-            oss << "Assistant: " << msg.content << "\n\n";
-        }
+        // Use ChatML format: <|im_start|>role\ncontent<|im_end|>
+        oss << "<|im_start|>" << msg.role << "\n" 
+            << msg.content << "<|im_end|>\n";
     }
     
     // Add the prompt for assistant to respond
-    oss << "Assistant: ";
+    oss << "<|im_start|>assistant\n";
     
     return oss.str();
 }
