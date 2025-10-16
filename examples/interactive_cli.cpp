@@ -194,6 +194,14 @@ int main(int argc, char** argv) {
         return 1;
     }
     
+    // Enable auto-summarization to prevent context overflow
+    printf("Enabling auto-summarization...\n");
+    if (luup_agent_enable_builtin_summarization(g_agent) != LUUP_SUCCESS) {
+        printf("Warning: Failed to enable summarization: %s\n", luup_get_last_error());
+    } else {
+        printf("  ✓ Auto-summarization enabled (context managed automatically)\n");
+    }
+    
     // Register tools if enabled
     if (enable_tools) {
         printf("\nRegistering tools...\n");
