@@ -30,23 +30,63 @@ void stream_callback(const char* token, void* user_data) {
 // Simple calculator tool for testing
 char* calculator_tool(const char* params_json, void* user_data) {
     printf("\n  [Tool: calculator called with %s]\n", params_json);
-    // Mock result
-    return strdup("{\"result\": 42}");
+    
+    // Extract expression from JSON string (simple string parsing)
+    const char* expr_start = strstr(params_json, "expression");
+    if (!expr_start) {
+        return strdup("{\"error\": \"No expression found\"}");
+    }
+    
+    // Find the value after "expression": "
+    const char* value_start = strchr(expr_start, '"');
+    if (value_start) value_start = strchr(value_start + 1, '"');
+    if (value_start) value_start++;
+    
+    const char* value_end = value_start ? strchr(value_start, '"') : nullptr;
+    
+    if (!value_start || !value_end) {
+        return strdup("{\"error\": \"Failed to parse expression\"}");
+    }
+    
+    char expression[256];
+    size_t expr_len = value_end - value_start;
+    if (expr_len >= sizeof(expression)) expr_len = sizeof(expression) - 1;
+    strncpy(expression, value_start, expr_len);
+    expression[expr_len] = '\0';
+    
+    // Parse and evaluate basic arithmetic
+    double a = 0, b = 0;
+    char op = 0;
+    double result = 0;
+    
+    if (sscanf(expression, "%lf %c %lf", &a, &op, &b) == 3 ||
+        sscanf(expression, "%lf%c%lf", &a, &op, &b) == 3) {
+        switch (op) {
+            case '+': result = a + b; break;
+            case '-': result = a - b; break;
+            case '*': case 'x': case 'X': result = a * b; break;
+            case '/': result = (b != 0) ? a / b : 0; break;
+            default: result = 0;
+        }
+    }
+    
+    char buffer[256];
+    snprintf(buffer, sizeof(buffer), "{\"result\": %.2f, \"expression\": \"%s\"}", result, expression);
+    return strdup(buffer);
 }
 
 // Simple time tool for testing
 char* time_tool(const char* params_json, void* user_data) {
     printf("\n  [Tool: get_time called]\n");
     time_t now = time(nullptr);
+    struct tm* timeinfo = localtime(&now);
+    
+    char time_str[100];
+    strftime(time_str, sizeof(time_str), "%Y-%m-%d %H:%M:%S %Z", timeinfo);
+    
     char buffer[256];
-    snprintf(buffer, sizeof(buffer), "{\"time\": \"%s\"}", ctime(&now));
-    // Remove newline from ctime
-    size_t len = strlen(buffer);
-    if (len > 3 && buffer[len-3] == '\n') {
-        buffer[len-3] = '"';
-        buffer[len-2] = '}';
-        buffer[len-1] = '\0';
-    }
+    snprintf(buffer, sizeof(buffer), "{\"time\": \"%s\", \"timestamp\": %ld}", 
+             time_str, (long)now);
     return strdup(buffer);
 }
 
