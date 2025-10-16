@@ -50,12 +50,14 @@ struct luup_agent {
     int max_tokens;
     bool enable_tool_calling;
     bool enable_history_management;
+    bool enable_builtin_tools;
     
     std::vector<Message> history;
     std::map<std::string, ToolInfo> tools;
     
     luup_agent() : model(nullptr), temperature(0.7f), max_tokens(0),
-                   enable_tool_calling(true), enable_history_management(true) {}
+                   enable_tool_calling(true), enable_history_management(true),
+                   enable_builtin_tools(true) {}
 };
 
 extern "C" {
@@ -74,6 +76,7 @@ luup_agent* luup_agent_create(const luup_agent_config* config) {
         agent->max_tokens = config->max_tokens;
         agent->enable_tool_calling = config->enable_tool_calling;
         agent->enable_history_management = config->enable_history_management;
+        agent->enable_builtin_tools = config->enable_builtin_tools;
         
         // Add system message to history if provided
         if (!agent->system_prompt.empty()) {
@@ -81,6 +84,18 @@ luup_agent* luup_agent_create(const luup_agent_config* config) {
             msg.role = "system";
             msg.content = agent->system_prompt;
             agent->history.push_back(msg);
+        }
+        
+        // Auto-register built-in tools if enabled (opt-out design)
+        if (agent->enable_builtin_tools) {
+            // Register todo list tool (in-memory only)
+            luup_agent_enable_builtin_todo(agent, nullptr);
+            
+            // Register notes tool (in-memory only)
+            luup_agent_enable_builtin_notes(agent, nullptr);
+            
+            // Register auto-summarization
+            luup_agent_enable_builtin_summarization(agent);
         }
         
         return agent;
@@ -421,50 +436,8 @@ char* luup_agent_get_history_json(luup_agent* agent) {
     }
 }
 
-luup_error_t luup_agent_enable_builtin_todo(
-    luup_agent* agent,
-    const char* storage_path)
-{
-    if (!agent) {
-        luup_set_error(LUUP_ERROR_INVALID_PARAM, "Invalid agent handle");
-        return LUUP_ERROR_INVALID_PARAM;
-    }
-    
-    // TODO: Implement built-in todo tool
-    // This will be implemented in Phase 3
-    
-    luup_set_error(LUUP_ERROR_INFERENCE_FAILED, "Not yet implemented");
-    return LUUP_ERROR_INFERENCE_FAILED;
-}
-
-luup_error_t luup_agent_enable_builtin_notes(
-    luup_agent* agent,
-    const char* storage_path)
-{
-    if (!agent) {
-        luup_set_error(LUUP_ERROR_INVALID_PARAM, "Invalid agent handle");
-        return LUUP_ERROR_INVALID_PARAM;
-    }
-    
-    // TODO: Implement built-in notes tool
-    // This will be implemented in Phase 3
-    
-    luup_set_error(LUUP_ERROR_INFERENCE_FAILED, "Not yet implemented");
-    return LUUP_ERROR_INFERENCE_FAILED;
-}
-
-luup_error_t luup_agent_enable_builtin_summarization(luup_agent* agent) {
-    if (!agent) {
-        luup_set_error(LUUP_ERROR_INVALID_PARAM, "Invalid agent handle");
-        return LUUP_ERROR_INVALID_PARAM;
-    }
-    
-    // TODO: Implement built-in summarization
-    // This will be implemented in Phase 3
-    
-    luup_set_error(LUUP_ERROR_INFERENCE_FAILED, "Not yet implemented");
-    return LUUP_ERROR_INFERENCE_FAILED;
-}
+// Note: Built-in tool implementations are in src/builtin_tools/*.cpp
+// These functions are declared extern "C" in those files
 
 void luup_agent_destroy(luup_agent* agent) {
     if (agent) {

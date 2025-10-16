@@ -167,6 +167,7 @@ typedef struct {
     int max_tokens;                     /**< Maximum tokens to generate (0 for no limit) */
     bool enable_tool_calling;           /**< Enable function calling (default: true) */
     bool enable_history_management;     /**< Auto-manage conversation history (default: true) */
+    bool enable_builtin_tools;          /**< Auto-register built-in tools (default: true, opt-out) */
 } luup_agent_config;
 
 /**
