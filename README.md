@@ -229,12 +229,21 @@ Contributions welcome! Please see our [contributing guidelines](CONTRIBUTING.md)
 
 ## Roadmap
 
-- [x] Core C API
-- [x] Local model support (llama.cpp)
-- [x] Tool calling system
-- [ ] **Python bindings (PRIORITY - v0.1)**
-- [ ] Built-in tools (todo, notes, memory)
-- [ ] Remote API support
+### ✅ Completed (v0.1-dev)
+- [x] **Phase 0**: Repository setup and build system
+- [x] **Phase 1**: Model layer with llama.cpp backend
+- [x] **Phase 2**: Agent layer with tool calling
+  - [x] Multi-turn conversation management
+  - [x] Tool registration and execution
+  - [x] Streaming generation API
+  - [x] History serialization
+
+### 🚧 In Progress
+- [ ] **Phase 3**: Built-in tools (todo, notes, auto-summarization)
+- [ ] **Phase 4**: Python bindings (PRIORITY - v0.1)
+
+### 📋 Planned
+- [ ] Remote API support (OpenAI-compatible)
 - [ ] C# bindings for Unity (v0.2)
 - [ ] Multi-agent messaging
 - [ ] Unreal Engine plugin

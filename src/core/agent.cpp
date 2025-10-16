@@ -5,14 +5,19 @@
 
 #include "../../include/luup_agent.h"
 #include "internal.h"
+#include <nlohmann/json.hpp>
 #include <string>
 #include <vector>
 #include <map>
 #include <memory>
+#include <cstring>
+#include <cstdlib>
+
+using json = nlohmann::json;
 
 extern void luup_set_error(luup_error_t code, const char* message);
 
-// Tool registration info
+// Tool registration info (matches tool_calling.cpp)
 struct ToolInfo {
     luup_tool tool;
     luup_tool_callback_t callback;
@@ -25,10 +30,16 @@ struct ToolInfo {
     }
 };
 
-// Message structure
+// Message structure (matches context_manager.cpp)
 struct Message {
     std::string role;
     std::string content;
+};
+
+// Tool call structure (matches tool_calling.cpp)
+struct ToolCall {
+    std::string tool_name;
+    std::string parameters_json;
 };
 
 // Internal agent structure
@@ -116,11 +127,109 @@ luup_error_t luup_agent_generate_stream(
         return LUUP_ERROR_INVALID_PARAM;
     }
     
-    // TODO: Implement streaming generation
-    // This will be implemented in Phase 2
-    
-    luup_set_error(LUUP_ERROR_INFERENCE_FAILED, "Not yet implemented");
-    return LUUP_ERROR_INFERENCE_FAILED;
+    try {
+        // Add user message to history if history management is enabled
+        if (agent->enable_history_management) {
+            Message msg;
+            msg.role = "user";
+            msg.content = user_message;
+            agent->history.push_back(msg);
+        }
+        
+        // Build the prompt from conversation history
+        std::string prompt;
+        if (agent->enable_history_management) {
+            prompt = format_chat_history(agent->history);
+        } else {
+            // No history - just use system prompt + user message
+            if (!agent->system_prompt.empty()) {
+                prompt = "System: " + agent->system_prompt + "\n\nUser: " + 
+                         std::string(user_message) + "\n\nAssistant: ";
+            } else {
+                prompt = "User: " + std::string(user_message) + "\n\nAssistant: ";
+            }
+        }
+        
+        // Add tool schema if tools are registered and enabled
+        if (agent->enable_tool_calling && !agent->tools.empty()) {
+            std::string tool_schema = generate_tool_schema(agent->tools);
+            // Insert tool schema after system prompt
+            size_t insert_pos = prompt.find("User:");
+            if (insert_pos != std::string::npos) {
+                prompt.insert(insert_pos, tool_schema);
+            }
+        }
+        
+        // For now, use blocking generation and simulate streaming
+        // TODO: Implement true token-by-token streaming in future
+        void* backend_data = luup_model_get_backend_data(agent->model);
+        if (!backend_data) {
+            luup_set_error(LUUP_ERROR_INVALID_PARAM, "Model backend not initialized");
+            return LUUP_ERROR_INVALID_PARAM;
+        }
+        
+        char* response_raw = llama_backend_generate(
+            backend_data,
+            prompt.c_str(),
+            agent->temperature,
+            agent->max_tokens
+        );
+        
+        if (!response_raw) {
+            return LUUP_ERROR_INFERENCE_FAILED;
+        }
+        
+        std::string response(response_raw);
+        free(response_raw);
+        
+        // Check for tool calls if enabled
+        if (agent->enable_tool_calling && !agent->tools.empty()) {
+            std::vector<ToolCall> tool_calls = parse_tool_calls(response);
+            
+            if (!tool_calls.empty()) {
+                // Execute tool calls
+                std::string tool_results;
+                for (const auto& tc : tool_calls) {
+                    std::string result = execute_tool(tc.tool_name, tc.parameters_json, agent->tools);
+                    tool_results += format_tool_result(tc.tool_name, result) + "\n";
+                }
+                
+                // Add tool results to history and regenerate
+                if (agent->enable_history_management) {
+                    Message assistant_msg;
+                    assistant_msg.role = "assistant";
+                    assistant_msg.content = response;
+                    agent->history.push_back(assistant_msg);
+                    
+                    Message tool_msg;
+                    tool_msg.role = "user";
+                    tool_msg.content = tool_results;
+                    agent->history.push_back(tool_msg);
+                }
+                
+                // Recursively generate final response
+                // (In real implementation, you'd want a max recursion depth)
+                return luup_agent_generate_stream(agent, tool_results.c_str(), callback, user_data);
+            }
+        }
+        
+        // Simulate streaming by calling callback with full response
+        callback(response.c_str(), user_data);
+        
+        // Add assistant response to history
+        if (agent->enable_history_management) {
+            Message msg;
+            msg.role = "assistant";
+            msg.content = response;
+            agent->history.push_back(msg);
+        }
+        
+        return LUUP_SUCCESS;
+        
+    } catch (const std::exception& e) {
+        luup_set_error(LUUP_ERROR_INFERENCE_FAILED, e.what());
+        return LUUP_ERROR_INFERENCE_FAILED;
+    }
 }
 
 char* luup_agent_generate(luup_agent* agent, const char* user_message) {
@@ -129,11 +238,112 @@ char* luup_agent_generate(luup_agent* agent, const char* user_message) {
         return nullptr;
     }
     
-    // TODO: Implement blocking generation
-    // This will be implemented in Phase 2
-    
-    luup_set_error(LUUP_ERROR_INFERENCE_FAILED, "Not yet implemented");
-    return nullptr;
+    try {
+        // Add user message to history if history management is enabled
+        if (agent->enable_history_management) {
+            Message msg;
+            msg.role = "user";
+            msg.content = user_message;
+            agent->history.push_back(msg);
+        }
+        
+        // Build the prompt from conversation history
+        std::string prompt;
+        if (agent->enable_history_management) {
+            prompt = format_chat_history(agent->history);
+        } else {
+            // No history - just use system prompt + user message
+            if (!agent->system_prompt.empty()) {
+                prompt = "System: " + agent->system_prompt + "\n\nUser: " + 
+                         std::string(user_message) + "\n\nAssistant: ";
+            } else {
+                prompt = "User: " + std::string(user_message) + "\n\nAssistant: ";
+            }
+        }
+        
+        // Add tool schema if tools are registered and enabled
+        if (agent->enable_tool_calling && !agent->tools.empty()) {
+            std::string tool_schema = generate_tool_schema(agent->tools);
+            // Insert tool schema after system prompt
+            size_t insert_pos = prompt.find("User:");
+            if (insert_pos != std::string::npos) {
+                prompt.insert(insert_pos, tool_schema);
+            }
+        }
+        
+        // Generate response
+        void* backend_data = luup_model_get_backend_data(agent->model);
+        if (!backend_data) {
+            luup_set_error(LUUP_ERROR_INVALID_PARAM, "Model backend not initialized");
+            return nullptr;
+        }
+        
+        char* response_raw = llama_backend_generate(
+            backend_data,
+            prompt.c_str(),
+            agent->temperature,
+            agent->max_tokens
+        );
+        
+        if (!response_raw) {
+            return nullptr;
+        }
+        
+        std::string response(response_raw);
+        free(response_raw);
+        
+        // Check for tool calls if enabled
+        if (agent->enable_tool_calling && !agent->tools.empty()) {
+            std::vector<ToolCall> tool_calls = parse_tool_calls(response);
+            
+            if (!tool_calls.empty()) {
+                // Execute tool calls
+                std::string tool_results;
+                for (const auto& tc : tool_calls) {
+                    std::string result = execute_tool(tc.tool_name, tc.parameters_json, agent->tools);
+                    tool_results += format_tool_result(tc.tool_name, result) + "\n";
+                }
+                
+                // Add tool results to history and regenerate
+                if (agent->enable_history_management) {
+                    Message assistant_msg;
+                    assistant_msg.role = "assistant";
+                    assistant_msg.content = response;
+                    agent->history.push_back(assistant_msg);
+                    
+                    Message tool_msg;
+                    tool_msg.role = "user";
+                    tool_msg.content = tool_results;
+                    agent->history.push_back(tool_msg);
+                }
+                
+                // Recursively generate final response
+                // (In real implementation, you'd want a max recursion depth)
+                return luup_agent_generate(agent, tool_results.c_str());
+            }
+        }
+        
+        // Add assistant response to history
+        if (agent->enable_history_management) {
+            Message msg;
+            msg.role = "assistant";
+            msg.content = response;
+            agent->history.push_back(msg);
+        }
+        
+        // Allocate and return result
+        char* result = static_cast<char*>(malloc(response.size() + 1));
+        if (result) {
+            memcpy(result, response.c_str(), response.size());
+            result[response.size()] = '\0';
+        }
+        
+        return result;
+        
+    } catch (const std::exception& e) {
+        luup_set_error(LUUP_ERROR_INFERENCE_FAILED, e.what());
+        return nullptr;
+    }
 }
 
 luup_error_t luup_agent_add_message(
@@ -184,11 +394,31 @@ char* luup_agent_get_history_json(luup_agent* agent) {
         return nullptr;
     }
     
-    // TODO: Implement JSON serialization
-    // This will be implemented in Phase 2
-    
-    luup_set_error(LUUP_ERROR_INFERENCE_FAILED, "Not yet implemented");
-    return nullptr;
+    try {
+        json history_json = json::array();
+        
+        for (const auto& msg : agent->history) {
+            json msg_json;
+            msg_json["role"] = msg.role;
+            msg_json["content"] = msg.content;
+            history_json.push_back(msg_json);
+        }
+        
+        std::string json_str = history_json.dump(2);  // Pretty print with 2-space indent
+        
+        // Allocate and return result
+        char* result = static_cast<char*>(malloc(json_str.size() + 1));
+        if (result) {
+            memcpy(result, json_str.c_str(), json_str.size());
+            result[json_str.size()] = '\0';
+        }
+        
+        return result;
+        
+    } catch (const std::exception& e) {
+        luup_set_error(LUUP_ERROR_JSON_PARSE_FAILED, e.what());
+        return nullptr;
+    }
 }
 
 luup_error_t luup_agent_enable_builtin_todo(

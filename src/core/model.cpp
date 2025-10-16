@@ -168,3 +168,8 @@ void luup_free_string(char* str) {
 
 } // extern "C"
 
+// Helper function for internal use
+void* luup_model_get_backend_data(luup_model* model) {
+    return model ? model->backend_data : nullptr;
+}
+
