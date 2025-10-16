@@ -121,16 +121,68 @@ luup_model* luup_model_create_remote(const luup_model_config* config);
 
 Creates a model using a remote API endpoint (OpenAI-compatible).
 
-**Example:**
+**Parameters:**
+- `config`: Model configuration with required fields:
+  - `path`: Model name (e.g., "gpt-4", "gpt-3.5-turbo", "llama2")
+  - `api_key`: API key for authentication (required)
+  - `api_base_url`: API endpoint URL (optional, defaults to OpenAI)
+  - `context_size`: Context window size (optional, defaults to 8192)
+  - `gpu_layers`, `threads`: Ignored for remote models
+
+**Returns:** Model handle or `NULL` on error
+
+**Supported Providers:**
+- **OpenAI**: `https://api.openai.com/v1` (default)
+- **Ollama**: `http://localhost:11434/v1` (local server)
+- **OpenRouter**: `https://openrouter.ai/api/v1`
+- **Any OpenAI-compatible endpoint**
+
+**Example - OpenAI:**
 ```c
 luup_model_config config = {
     .path = "gpt-3.5-turbo",
     .api_key = "sk-...",
-    .api_base_url = "https://api.openai.com/v1"
+    .api_base_url = "https://api.openai.com/v1",  // Optional
+    .context_size = 4096
 };
 
 luup_model* model = luup_model_create_remote(&config);
 ```
+
+**Example - Ollama (Local):**
+```c
+luup_model_config config = {
+    .path = "llama2",
+    .api_key = "ollama",  // Any value works for local Ollama
+    .api_base_url = "http://localhost:11434/v1",
+    .context_size = 2048
+};
+
+luup_model* model = luup_model_create_remote(&config);
+```
+
+**Example - Environment Variables:**
+```c
+const char* api_key = getenv("OPENAI_API_KEY");
+if (!api_key) {
+    fprintf(stderr, "Please set OPENAI_API_KEY\n");
+    return 1;
+}
+
+luup_model_config config = {
+    .path = "gpt-4",
+    .api_key = api_key,
+    .context_size = 8192
+};
+
+luup_model* model = luup_model_create_remote(&config);
+```
+
+**Error Handling:**
+- `LUUP_ERROR_INVALID_PARAM`: Missing API key or model name
+- `LUUP_ERROR_INVALID_PARAM`: Invalid URL format
+- `LUUP_ERROR_BACKEND_INIT_FAILED`: Backend initialization failure
+- `LUUP_ERROR_HTTP_FAILED`: Network or API errors (during generation)
 
 #### Warmup Model
 
@@ -139,6 +191,8 @@ luup_error_t luup_model_warmup(luup_model* model);
 ```
 
 Pre-warms the model by running a dummy inference. Reduces first-token latency.
+
+**Note:** For remote models, this is a no-op and always returns `LUUP_SUCCESS`.
 
 #### Get Model Info
 

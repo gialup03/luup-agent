@@ -33,10 +33,12 @@ cmake --build . --config Release
 
 ### Basic Usage (C API)
 
+#### Local Model (GGUF)
+
 ```c
 #include <luup_agent.h>
 
-// Create and warmup model
+// Create and warmup local model
 luup_model_config model_config = {
     .path = "models/qwen-0.5b.gguf",
     .gpu_layers = -1,  // Auto-detect and use all available GPU
@@ -46,6 +48,20 @@ luup_model_config model_config = {
 
 luup_model* model = luup_model_create_local(&model_config);
 luup_model_warmup(model);
+```
+
+#### Remote Model (OpenAI-compatible API)
+
+```c
+// Use OpenAI, Ollama, or any compatible API
+luup_model_config remote_config = {
+    .path = "gpt-4",  // Model name
+    .api_key = "sk-...",  // API key
+    .api_base_url = "https://api.openai.com/v1",  // Optional
+    .context_size = 8192
+};
+
+luup_model* model = luup_model_create_remote(&remote_config);
 
 // Create agent (built-in tools enabled by default)
 luup_agent_config agent_config = {
@@ -112,9 +128,16 @@ luup_agent_generate_stream(agent, "Tell me a story", token_callback, NULL);
 ```python
 from luup_agent import Model, Agent
 
-# Create and warmup model
+# Local model
 model = Model.from_local("models/qwen-0.5b.gguf", gpu_layers=-1)
 model.warmup()
+
+# Or use remote API
+model = Model.from_remote(
+    endpoint="https://api.openai.com/v1",
+    api_key="sk-...",
+    context_size=4096
+)
 
 # Create agent
 agent = Agent(model, system_prompt="You are a helpful assistant.")
@@ -226,6 +249,7 @@ agent.GenerateStream("What should I do?", token => Debug.Log(token));
 - [Quick Start Guide](docs/quickstart.md) - Get started in 5 minutes
 - [Tool Calling Guide](docs/tool_calling_guide.md) - How to add custom tools
 - [Python Bindings](bindings/python/README.md) - Python package documentation
+- [Phase 5: Remote API Backend](docs/phases/PHASE5_COMPLETE.md) - OpenAI-compatible API support
 - [Examples](examples/) - Sample code for C and Python
 
 ## Building Options
@@ -283,12 +307,18 @@ Contributions welcome! Please see our [contributing guidelines](CONTRIBUTING.md)
   - [x] Sync and async streaming
   - [x] Full type hints
   - [x] 28 test cases + examples
+- [x] **Phase 5**: Remote API backend ✨
+  - [x] OpenAI-compatible API support
+  - [x] Custom endpoints (Ollama, OpenRouter, etc.)
+  - [x] Streaming with SSE parsing
+  - [x] Tool calling format conversion
+  - [x] Comprehensive error handling
 
 ### 📋 Planned
-- [ ] Remote API support (OpenAI-compatible)
 - [ ] C# bindings for Unity (v0.2)
 - [ ] Multi-agent messaging
 - [ ] Unreal Engine plugin
+- [ ] Advanced caching and retry logic
 
 ## Support
 

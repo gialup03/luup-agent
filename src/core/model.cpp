@@ -36,8 +36,9 @@ struct luup_model {
         if (backend_data) {
             if (is_local) {
                 llama_backend_free(backend_data);
+            } else {
+                openai_backend_free(backend_data);
             }
-            // Remote backend cleanup will be added in Phase 2
         }
     }
 };
@@ -94,16 +95,38 @@ luup_model* luup_model_create_remote(const luup_model_config* config) {
         return nullptr;
     }
     
+    // Validate required parameters for remote models
+    if (!config->api_key || strlen(config->api_key) == 0) {
+        luup_set_error(LUUP_ERROR_INVALID_PARAM, "API key is required for remote models");
+        return nullptr;
+    }
+    
     try {
         auto model = new luup_model();
-        model->path = config->path;
-        model->api_key = config->api_key ? config->api_key : "";
-        model->api_base_url = config->api_base_url ? config->api_base_url : "";
-        model->context_size = config->context_size > 0 ? config->context_size : 2048;
+        model->path = config->path;  // Model name (e.g., "gpt-4", "claude-3")
+        model->api_key = config->api_key;
+        model->api_base_url = config->api_base_url ? config->api_base_url : "https://api.openai.com/v1";
+        model->context_size = config->context_size > 0 ? config->context_size : 8192;
         model->is_local = false;
         
-        // TODO: Initialize remote API backend
-        // This will be implemented in Phase 2
+        // Initialize OpenAI-compatible API backend
+        model->backend_data = openai_backend_init(
+            model->api_base_url.c_str(),
+            model->api_key.c_str(),
+            model->path.c_str(),  // Model name
+            model->context_size
+        );
+        
+        if (!model->backend_data) {
+            // Error already set by openai_backend_init
+            delete model;
+            return nullptr;
+        }
+        
+        // Set backend info for remote models
+        model->device_type = "API";
+        model->gpu_layers_loaded = 0;  // N/A for remote models
+        model->memory_usage = 0;        // N/A for remote models
         
         return model;
     } catch (const std::exception& e) {
