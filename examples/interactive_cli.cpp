@@ -14,6 +14,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <unistd.h>
 #include <iostream>
 #include <string>
 
@@ -60,6 +61,9 @@ void print_help() {
 }
 
 int main(int argc, char** argv) {
+    // Suppress verbose llama.cpp logs (redirect stderr to /dev/null)
+    freopen("/dev/null", "w", stderr);
+    
     printf("====================================\n");
     printf("  luup-agent Interactive CLI\n");
     printf("  Version: %s\n", luup_version());
@@ -112,8 +116,9 @@ int main(int argc, char** argv) {
     };
     
     luup_model* model = luup_model_create_local(&model_config);
+    
     if (!model) {
-        fprintf(stderr, "❌ Error creating model: %s\n", luup_get_last_error());
+        printf("❌ Error creating model: %s\n", luup_get_last_error());
         return 1;
     }
     
@@ -138,7 +143,7 @@ int main(int argc, char** argv) {
     // Create agent
     luup_agent_config agent_config = {
         .model = model,
-        .system_prompt = "You are a helpful AI assistant. Be concise and friendly.",
+        .system_prompt = "You are a helpful AI assistant. Always respond in English. Be concise and friendly.",
         .temperature = temperature,
         .max_tokens = 512,
         .enable_tool_calling = enable_tools,
@@ -147,7 +152,7 @@ int main(int argc, char** argv) {
     
     g_agent = luup_agent_create(&agent_config);
     if (!g_agent) {
-        fprintf(stderr, "❌ Error creating agent: %s\n", luup_get_last_error());
+        printf("❌ Error creating agent: %s\n", luup_get_last_error());
         luup_model_destroy(model);
         return 1;
     }
@@ -257,7 +262,7 @@ int main(int argc, char** argv) {
         );
         
         if (err != LUUP_SUCCESS) {
-            fprintf(stderr, "\n❌ Error: %s\n", luup_get_last_error());
+            printf("\n❌ Error: %s\n", luup_get_last_error());
         }
         
         printf("\n\n");
