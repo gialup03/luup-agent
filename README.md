@@ -103,13 +103,15 @@ luup_agent_generate_stream(agent, "Tell me a story", token_callback, NULL);
 
 ## Language Bindings
 
-### Python (Coming in v0.1)
+### Python ✅
+
+**Status**: Available now in `bindings/python/`
 
 ```python
 from luup_agent import Model, Agent
 
 # Create and warmup model
-model = Model.from_local("model.gguf", gpu_layers=-1)
+model = Model.from_local("models/qwen-0.5b.gguf", gpu_layers=-1)
 model.warmup()
 
 # Create agent
@@ -118,6 +120,10 @@ agent = Agent(model, system_prompt="You are a helpful assistant.")
 # Generate response
 response = agent.generate("Hello!")
 print(response)
+
+# Streaming
+for token in agent.generate_stream("Tell me a story"):
+    print(token, end='', flush=True)
 
 # Async streaming
 async for token in agent.generate_async("Tell me a story"):
@@ -128,6 +134,32 @@ async for token in agent.generate_async("Tell me a story"):
 def get_weather(city: str) -> dict:
     return {"temperature": 72, "condition": "sunny"}
 ```
+
+**Installation:**
+
+```bash
+# Build C library first
+./build.sh
+
+# Install Python package (in a virtual environment)
+cd bindings/python
+python3 -m venv venv
+source venv/bin/activate
+pip install -e ".[dev]"
+
+# Run examples
+python3 examples/basic_chat.py ../models/qwen2-0.5b-instruct-q4_k_m.gguf
+```
+
+**Features:**
+- ✅ Full type hints and IDE support
+- ✅ Context managers for automatic cleanup
+- ✅ Async/await streaming
+- ✅ `@agent.tool()` decorator with auto schema generation
+- ✅ Exception-based error handling
+- ✅ 28 test cases
+
+See [Python bindings README](bindings/python/README.md) for complete documentation.
 
 ### C# (Unity) (Coming in v0.2)
 
@@ -191,7 +223,8 @@ agent.GenerateStream("What should I do?", token => Debug.Log(token));
 - [API Reference](docs/api_reference.md) - Complete C API documentation
 - [Quick Start Guide](docs/quickstart.md) - Get started in 5 minutes
 - [Tool Calling Guide](docs/tool_calling_guide.md) - How to add custom tools
-- [Examples](examples/) - Sample code for various use cases
+- [Python Bindings](bindings/python/README.md) - Python package documentation
+- [Examples](examples/) - Sample code for C and Python
 
 ## Building Options
 
@@ -237,10 +270,15 @@ Contributions welcome! Please see our [contributing guidelines](CONTRIBUTING.md)
   - [x] Tool registration and execution
   - [x] Streaming generation API
   - [x] History serialization
+- [x] **Phase 4**: Python bindings ✨
+  - [x] Pythonic Model and Agent classes
+  - [x] `@agent.tool()` decorator
+  - [x] Sync and async streaming
+  - [x] Full type hints
+  - [x] 28 test cases + examples
 
 ### 🚧 In Progress
 - [ ] **Phase 3**: Built-in tools (todo, notes, auto-summarization)
-- [ ] **Phase 4**: Python bindings (PRIORITY - v0.1)
 
 ### 📋 Planned
 - [ ] Remote API support (OpenAI-compatible)
